@@ -12,7 +12,7 @@ from synology_api import active_backup
 with open('config.json') as config_file:
     config = json.load(config_file)
 
-def register_metrics():
+def active_backup_register_metrics():
     global gauge_active_backup_lastbackup_timestamp
     gauge_active_backup_lastbackup_timestamp = Gauge('synology_active_backup_lastbackup_timestamp','Timestamp of last backup', ['vmname', 'hostname', 'vmuuid', 'vmos'])
     global gauge_active_backup_lastbackup_duration
@@ -69,6 +69,7 @@ if __name__ == '__main__':
     register_metrics()
 
     if config['ActiveBackup']:
+        active_backup_register_metrics()
         active_backup_login()
         active_backup_get_info()
 
