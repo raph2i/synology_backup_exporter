@@ -66,7 +66,7 @@ def process_request(t):
 if __name__ == '__main__':
     print("Synology Backup Exporter")
     print("2020 - raphii / Raphael Pertl")
-    register_metrics()
+
 
     if config['ActiveBackup']:
         active_backup_register_metrics()
