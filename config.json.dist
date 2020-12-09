@@ -1,0 +1,10 @@
+{
+    "DSMAddress": "syno.ip.add.ress",
+    "DSMPort": "5000",
+    "Username": "admin",
+    "Password": "changeme",
+    "Secure": false,
+    "Cert_Verify": false,
+    "ActiveBackup": true,
+    "ExporterPort": "9771"
+}
