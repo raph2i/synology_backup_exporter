@@ -1,9 +1,14 @@
 # Synology Backup Exporter
 
 ### Install
+#### Docker
+docker-image available [Docker Hub](https://hub.docker.com/r/raphii/synology_backup_exporter)
+
+#### Other
 ```
 TBD
 ``` 
+
 
 ### Configure
 change the settings in config.json to your needs
