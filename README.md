@@ -4,10 +4,17 @@
 #### Docker
 docker-image available [Docker Hub](https://hub.docker.com/r/raphii/synology_backup_exporter)
 
-#### Other
-```
-TBD
-``` 
+#### Synology Docker
+
+0. create config.json in /volume1/docker/synology_backup_exporter (or elsewhere)
+1. Search for "synology_backup_exporter" in Docker Registry
+2. select tag "dsm7"
+3. wait for image download to finish
+4. launch image
+5. set config.json as filevolume to /app/config.json
+6. add port settings
+7. ???
+8. scrape metrics :)
 
 
 ### Configure
