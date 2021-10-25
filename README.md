@@ -18,7 +18,7 @@ The default exporter-port is 9771.
 
 ### Metrics
 Active Backup for Business metrics have these labels:
-` hostname,vmname,vmos,vmuuid`
+`hostname,vmname,vmos,vmuuid`
 
 
 metrics:
@@ -31,11 +31,21 @@ synology_active_backup_lastbackup_result
 
 ### Alert rules:
 
+#### Last Backup not successful:
 ```
-TBD
+name: Synology Last Backup not successful
+expr: synology_active_backup_lastbackup_result != 2
+for: 1m
+```
+
+#### Last Backup older than 72 hours:
+```
+name: Synology Last Backup older than 72 hours
+expr: ((synology_active_backup_lastbackup_timestamp - time()) / 3600) < -72
+for: 1m
 ```
 
 ### License
-MIT // 2020 - Raphael Pertl
+MIT // 2021 - Raphael Pertl
 
 #### Special thanks to [synology-api](https://github.com/N4S4/synology-api)
