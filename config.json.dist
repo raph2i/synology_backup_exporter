@@ -6,5 +6,6 @@
     "Secure": false,
     "Cert_Verify": false,
     "ActiveBackup": true,
-    "ExporterPort": "9771"
+    "ExporterPort": "9771",
+    "DSM_Version": "7"
 }

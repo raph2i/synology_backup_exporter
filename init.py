@@ -7,7 +7,10 @@ import time
 import datetime
 import requests
 import json
-from synology_api import active_backup
+
+import sys
+sys.path.insert(0, '/home/raphael/Projekte/synology-api')
+from synology_api import core_active_backup as active_backup
 
 with open('config.json') as config_file:
     config = json.load(config_file)
@@ -24,7 +27,7 @@ def active_backup_register_metrics():
 
 def active_backup_login():
     global active_backup_session
-    active_backup_session = active_backup.ActiveBackupBusiness(config['DSMAddress'], config['DSMPort'], config['Username'], config['Password'], config['Secure'], config['Cert_Verify'])
+    active_backup_session = active_backup.ActiveBackupBusiness(config['DSMAddress'], config['DSMPort'], config['Username'], config['Password'], config['Secure'], config['Cert_Verify'], config['DSM_Version'])
 
 def active_backup_get_info():
     abb_hypervisor = active_backup_session.list_vm_hypervisor()
@@ -36,23 +39,28 @@ def active_backup_get_info():
         hypervisor_list[hypervisor['inventory_id']] = hypervisor['host_name']
 
     for vm in abb_vms['data']['device_list']:
-        vm_hypervisor = hypervisor_list[vm['device']['inventory_id']]
+        if vm['device']['inventory_id'] != 0:
+            vm_hypervisor = hypervisor_list[vm['device']['inventory_id']]
+        else:
+            vm_hypervisor = vm['device']['host_name']
+        
         vm_hostname = vm['device']['host_name']
         vm_uuid = vm['device']['device_uuid']
         vm_os = vm['device']['os_name']
 
         try: #trying, if no backup is existing, this will fail.
-            vm_backup_start_timestamp = vm['transfer_list'][0]['time_start']
-            vm_backup_end_timestamp = vm['transfer_list'][0]['time_end']
-            vm_backup_duration_seconds = vm_backup_end_timestamp - vm_backup_start_timestamp
-            vm_backup_status = vm['transfer_list'][0]['status']
-            vm_backup_transfered_bytes = vm['transfer_list'][0]['transfered_bytes']
-            gauge_active_backup_lastbackup_timestamp.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_end_timestamp)
-            gauge_active_backup_lastbackup_duration.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_duration_seconds)
-            gauge_active_backup_lastbackup_transfered_bytes.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_transfered_bytes)
-            gauge_active_backup_lastbackup_result.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_status)
+            if vm['transfer_list']:
+                vm_backup_start_timestamp = vm['transfer_list'][0]['time_start']
+                vm_backup_end_timestamp = vm['transfer_list'][0]['time_end']
+                vm_backup_duration_seconds = vm_backup_end_timestamp - vm_backup_start_timestamp
+                vm_backup_status = vm['transfer_list'][0]['status']
+                vm_backup_transfered_bytes = vm['transfer_list'][0]['transfered_bytes']
+                gauge_active_backup_lastbackup_timestamp.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_end_timestamp)
+                gauge_active_backup_lastbackup_duration.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_duration_seconds)
+                gauge_active_backup_lastbackup_transfered_bytes.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_transfered_bytes)
+                gauge_active_backup_lastbackup_result.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_status)
         except IndexError:
-            print('Failed to load Backups')
+            print('ERROR - Failed to load Backups.')
 
 # Create a metric to track time spent and requests made.
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
@@ -65,7 +73,7 @@ def process_request(t):
 
 if __name__ == '__main__':
     print("Synology Backup Exporter")
-    print("2020 - raphii / Raphael Pertl")
+    print("2021 - raphii / Raphael Pertl")
 
 
     if config['ActiveBackup']:
@@ -75,7 +83,7 @@ if __name__ == '__main__':
 
     # Start up the server to expose the metrics.
     start_http_server(int(config['ExporterPort']))
-    print("Web Server running on Port " + str(config['ExporterPort']))
+    print("INFO - Web Server running on Port " + str(config['ExporterPort']))
     
     while True:
         process_request(random.random())
