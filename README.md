@@ -46,6 +46,17 @@ synology_hyper_backup_lastbackup_timestamp
 synology_hyper_backup_lastbackup_duration
 ```
 
+#### Hyper Backup Vault
+Hyper Backup Vault metrics have these labels:
+`target_name,target_id,target_status`
+
+```
+synology_hyper_backup_vault_last_backup_duration_seconds
+synology_hyper_backup_vault_last_backup_start_timestamp
+synology_hyper_backup_vault_target_used_size_bytes
+
+```
+
 ### Alert rules:
 
 #### Last Backup not successful:

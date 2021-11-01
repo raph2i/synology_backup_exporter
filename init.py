@@ -111,6 +111,35 @@ def hyper_backup_get_info():
         except IndexError:
             print('ERROR - Failed to load Backups.')
 
+def hyper_backup_vault_register_metrics():
+    global gauge_hyper_backup_vault_last_backup_duration_seconds
+    gauge_hyper_backup_vault_last_backup_duration_seconds = Gauge('synology_hyper_backup_vault_last_backup_duration_seconds','Duration of last backup', ['target_name', 'target_id', 'target_status'])
+    global gauge_hyper_backup_vault_last_backup_start_timestamp
+    gauge_hyper_backup_vault_last_backup_start_timestamp = Gauge('synology_hyper_backup_vault_last_backup_start_timestamp','Timestamp of last backup start', ['target_name', 'target_id', 'target_status'])
+    global gauge_hyper_backup_vault_target_used_size_bytes
+    gauge_hyper_backup_vault_target_used_size_bytes = Gauge('synology_hyper_backup_vault_target_used_size_bytes','Size of last backup', ['target_name', 'target_id', 'target_status'])
+
+
+def hyper_backup_vault_login():
+    global hyper_backup_vault_session
+    hyper_backup_vault_session = hyper_backup.Backup(config['DSMAddress'], config['DSMPort'], config['Username'], config['Password'], config['Secure'], config['Cert_Verify'], config['DSM_Version'])
+
+def hyper_backup_vault_get_info():
+    hyper_backup_vault_data = hyper_backup_vault_session.vault_target_list()
+
+    for target in hyper_backup_vault_data['data']['target_list']:
+        hyper_backup_vault_target_name = target['target_name']
+        hyper_backup_vault_target_id = target['target_id']
+        hyper_backup_vault_target_status = target['status']
+        hyper_backup_vault_target_last_backup_duration = target['last_backup_duration']
+        hyper_backup_vault_target_last_backup_start_time = target['last_backup_start_time']
+        hyper_backup_vault_target_used_size_kibibytes = target['used_size']
+        hyper_backup_vault_target_used_size_bytes = hyper_backup_vault_target_used_size_kibibytes * 1024
+
+        gauge_hyper_backup_vault_last_backup_duration_seconds.labels(hyper_backup_vault_target_name, hyper_backup_vault_target_id, hyper_backup_vault_target_status).set(hyper_backup_vault_target_last_backup_duration)
+        gauge_hyper_backup_vault_last_backup_start_timestamp.labels(hyper_backup_vault_target_name, hyper_backup_vault_target_id, hyper_backup_vault_target_status).set(hyper_backup_vault_target_last_backup_start_time)
+        gauge_hyper_backup_vault_target_used_size_bytes.labels(hyper_backup_vault_target_name, hyper_backup_vault_target_id, hyper_backup_vault_target_status).set(hyper_backup_vault_target_used_size_bytes)
+
 # Create a metric to track time spent and requests made.
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
 
@@ -135,6 +164,11 @@ if __name__ == '__main__':
         hyper_backup_login()
         hyper_backup_get_info()
 
+    if config['HyperBackupVault']:
+        hyper_backup_vault_register_metrics()
+        hyper_backup_vault_login()
+        hyper_backup_vault_get_info()
+
     # Start up the server to expose the metrics.
     start_http_server(int(config['ExporterPort']))
     print("INFO - Web Server running on Port " + str(config['ExporterPort']))
@@ -146,3 +180,5 @@ if __name__ == '__main__':
             active_backup_get_info()
         if config['HyperBackup']:
             hyper_backup_get_info()
+        if config['HyperBackupVault']:
+            hyper_backup_vault_get_info()
