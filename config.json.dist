@@ -6,6 +6,7 @@
     "Secure": false,
     "Cert_Verify": false,
     "ActiveBackup": true,
+    "HyperBackup": true,
     "ExporterPort": "9771",
     "DSM_Version": "7"
 }
