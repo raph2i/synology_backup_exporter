@@ -24,6 +24,7 @@ The default exporter-port is 9771.
 
 
 ### Metrics
+#### Active Backup for Business
 Active Backup for Business metrics have these labels:
 `hostname,vmname,vmos,vmuuid`
 
@@ -35,20 +36,43 @@ synology_active_backup_lastbackup_duration
 synology_active_backup_lastbackup_transfered_bytes
 synology_active_backup_lastbackup_result
 ```
+#### Hyper Backup
+Hyper Backup metrics have these labels:
+`task_id,task_name,target_type`
+
+```
+synology_hyper_backup_lastbackup_successful_timestamp
+synology_hyper_backup_lastbackup_timestamp
+synology_hyper_backup_lastbackup_duration
+```
 
 ### Alert rules:
 
 #### Last Backup not successful:
+##### Active Backup
 ```
-name: Synology Last Backup not successful
+name: Synology Active Backup Last Backup not successful
 expr: synology_active_backup_lastbackup_result != 2
+for: 1m
+```
+##### Hyper Backup
+```
+name: Synology Hyper Backup Last Backup not successful
+expr: synology_hyper_backup_lastbackup_timestamp != synology_hyper_backup_lastbackup_successful_timestamp
 for: 1m
 ```
 
 #### Last Backup older than 72 hours:
+##### Active Backup
 ```
-name: Synology Last Backup older than 72 hours
+name: Synology Active Backup Last Backup older than 72 hours
 expr: ((synology_active_backup_lastbackup_timestamp - time()) / 3600) < -72
+for: 1m
+```
+##### Hyper Backup
+```
+name: Synology Hyper Backup Last Backup older than 72 hours
+expr: ((synology_hyper_backup_lastbackup_successful_timestamp - time()) / 3600) < -72
 for: 1m
 ```
 
