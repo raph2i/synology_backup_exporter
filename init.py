@@ -8,8 +8,8 @@ import datetime
 import requests
 import json
 
-import sys
-sys.path.insert(0, '/home/raphael/Projekte/synology-api')
+#import sys
+#sys.path.insert(0, '/home/raphael/Projekte/synology-api')
 from synology_api import core_active_backup as active_backup
 from synology_api import core_backup as hyper_backup
 
