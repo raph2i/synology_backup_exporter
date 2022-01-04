@@ -12,15 +12,24 @@ docker-image available [Docker Hub](https://hub.docker.com/r/raphii/synology_bac
 3. wait for image download to finish
 4. launch image
 5. set config.json as filevolume to /app/config.json
-6. add port settings
+6. add port settings (The default exporter-port is 9771)
 7. ???
 8. scrape metrics :)
 
 
 ### Configure
-change the settings in config.json to your needs
 
-The default exporter-port is 9771.
+#### Configure with just a config file
+Copy `config.json.dist` to `config.json` then change the settings in `config.json` to your needs
+
+#### Configure with just Environment Variables
+Look in the `config.json.dist` file, then simply uppercase the keys and provide the values, for example:
+* `DSMAddress` becomes `DSMADDRESS`
+* `Cert_Verify` becomes `CERT_VERIFY`
+* etc
+
+#### Configure with both the config file and Environment Variables
+Copy `config.json.dist` to `config.json` then change the settings in `config.json` to your needs. Remove any lines that are not wanted in the config file, for example if having a password in the config file is not desired, remove that line, then provide the environment variable `PASSWORD`. If a value is provided in the config file and as an environment variable, the config file will take precedence. Note: JSON files should not have a `,` on the last configuration line, if the last line has a comma this exporter will not work
 
 
 ### Metrics

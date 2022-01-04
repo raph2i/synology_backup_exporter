@@ -3,18 +3,16 @@
 from prometheus_client import start_http_server, Summary, Gauge, Enum
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
 import random
-import time 
+import time
 import datetime
 import requests
 import json
+import os
 
 #import sys
 #sys.path.insert(0, '/home/raphael/Projekte/synology-api')
 from synology_api import core_active_backup as active_backup
 from synology_api import core_backup as hyper_backup
-
-with open('config.json') as config_file:
-    config = json.load(config_file)
 
 def active_backup_register_metrics():
     global gauge_active_backup_lastbackup_timestamp
@@ -44,7 +42,7 @@ def active_backup_get_info():
             vm_hypervisor = hypervisor_list[vm['device']['inventory_id']]
         else:
             vm_hypervisor = vm['device']['host_name']
-        
+
         vm_hostname = vm['device']['host_name']
         vm_uuid = vm['device']['device_uuid']
         vm_os = vm['device']['os_name']
@@ -62,6 +60,29 @@ def active_backup_get_info():
                 gauge_active_backup_lastbackup_result.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_status)
         except IndexError:
             print('ERROR - Failed to load Backups.')
+
+def convert_to_bool(input):
+    # distutils.util.strtobool is deprecated, and according to PEP 632
+    # the suggestion is "you will need to reimplement the functionality yourself"
+    match input:
+        case ('true' | 't' | 'yes' | 'y' | '1' | 1 | True):
+            return True
+        case None:
+            # in the situation where the env var doesn't exist, os.getenv() returns None
+            # we want to keep that None instead of defaulting to False or True
+            return None
+        case _:
+            return False
+
+def convert_to_int(input):
+    try:
+        int(input)
+        return input
+    except:
+        # in the situation where the env var doesn't exist, os.getenv() returns None.
+        # int() will throw an error when it cannot cast the variable to an int, such as
+        # when the variable is None, if that happens we will keep it as a None
+        return None
 
 def hyper_backup_register_metrics():
     global gauge_hyper_backup_lastbackup_successful_timestamp
@@ -100,7 +121,7 @@ def hyper_backup_get_info():
 
         hyper_backup_start_timestamp = time.mktime(time.strptime(hyper_backup_start_time, "%Y/%m/%d %H:%M"))
         hyper_backup_end_timestamp = time.mktime(time.strptime(hyper_backup_end_time, "%Y/%m/%d %H:%M"))
-    
+
         hyper_backup_duration_seconds = hyper_backup_end_timestamp - hyper_backup_start_timestamp
 
         try: #trying, if no backup is existing, this will fail.
@@ -150,8 +171,49 @@ def process_request(t):
     time.sleep(t)
 
 if __name__ == '__main__':
+    config_file_name = 'config.json'
+    config_items_and_types = {
+        'DSMAddress': 'string',
+        'DSMPort': 'int',
+        'Username': 'string',
+        'Password': 'string',
+        'Secure': 'bool',
+        'Cert_Verify': 'bool',
+        'ActiveBackup': 'bool',
+        'HyperBackup': 'bool',
+        'HyperBackupVault': 'bool',
+        'ExporterPort': 'int',
+        'DSM_Version': 'int'
+    }
+
+    if os.path.exists(config_file_name):
+        with open(config_file_name) as config_file:
+            config = json.load(config_file)
+    else:
+        config = {}
+
+    for config_item, item_type in config_items_and_types.items():
+        if config_item not in config:
+            config_item_env_var = config_item.upper()
+            print(f"Configuration item '{config_item}' wasn't found in {config_file_name}, attempting to read from environnment variable '{config_item_env_var}'")
+            match item_type:
+                case 'string':
+                    config[config_item] = os.getenv(config_item_env_var)
+                case 'bool':
+                    config[config_item] = convert_to_bool(os.getenv(config_item_env_var))
+                case 'int':
+                    config[config_item] = convert_to_int(os.getenv(config_item_env_var))
+                case _:
+                    print("ERROR - Invalid configuration type, exiting")
+                    exit(1)
+
+    if None in list(config.values()):
+        missing_config_items = [item for item, value in config.items() if value == None]
+        print(f"ERROR - Missing or bad configuration for {missing_config_items}, it couldn't be found in {config_file_name} or in any environment variables, exiting")
+        exit(1)
+
     print("Synology Backup Exporter")
-    print("2021 - raphii / Raphael Pertl")
+    print("2022 - raphii / Raphael Pertl")
 
 
     if config['ActiveBackup']:
@@ -172,7 +234,7 @@ if __name__ == '__main__':
     # Start up the server to expose the metrics.
     start_http_server(int(config['ExporterPort']))
     print("INFO - Web Server running on Port " + str(config['ExporterPort']))
-    
+
     while True:
         process_request(random.random())
         time.sleep(5)
