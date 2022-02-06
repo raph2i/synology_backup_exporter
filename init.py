@@ -114,10 +114,19 @@ def hyper_backup_get_info():
         hyper_backup_task = hyper_backup_taskname[result] #taskname
         hyper_backup_last_success = hyper_backup_taskresult['data']['last_bkp_success_time'] #last success
 
+        if hyper_backup_last_success=='': # if the backup has never completed, set the time to now
+            hyper_backup_last_success = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+
         hyper_backup_last_success_timestamp = time.mktime(time.strptime(hyper_backup_last_success, "%Y/%m/%d %H:%M"))
 
         hyper_backup_start_time = hyper_backup_taskresult['data']['last_bkp_time']
         hyper_backup_end_time = hyper_backup_taskresult['data']['last_bkp_end_time']
+
+        if hyper_backup_start_time=='': # if the backup has never completed, set the time to now
+            hyper_backup_start_time = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+
+        if hyper_backup_end_time=='': # if the backup has never completed, set the time to now
+            hyper_backup_end_time = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
 
         hyper_backup_start_timestamp = time.mktime(time.strptime(hyper_backup_start_time, "%Y/%m/%d %H:%M"))
         hyper_backup_end_timestamp = time.mktime(time.strptime(hyper_backup_end_time, "%Y/%m/%d %H:%M"))
