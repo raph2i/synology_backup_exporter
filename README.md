@@ -54,6 +54,7 @@ synology_hyper_backup_lastbackup_successful_timestamp
 synology_hyper_backup_lastbackup_timestamp
 synology_hyper_backup_lastbackup_duration
 ```
+**Note**: For the first time a Hyper Backup is run, the exporter will report the backup job as being successful with a duration of 0 seconds, and completion timestamps of whenever the exporter scraped the Synology.
 
 #### Hyper Backup Vault
 Hyper Backup Vault metrics have these labels:
