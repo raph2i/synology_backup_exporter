@@ -222,7 +222,7 @@ if __name__ == '__main__':
         exit(1)
 
     print("Synology Backup Exporter")
-    print("2022 - raphii / Raphael Pertl")
+    print("2023 - raphii / Raphael Pertl")
 
 
     if config['ActiveBackup']:
