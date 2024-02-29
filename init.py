@@ -103,6 +103,9 @@ def hyper_backup_get_info():
     hyper_backup_taskname = {}
     hyper_backup_tasktype = {}
 
+    time_format_with_seconds = "%Y/%m/%d %H:%M:%S"
+    time_format_without_seconds = "%Y/%m/%d %H:%M"
+
     for task in hyper_backup_data['data']['task_list']:
         hyper_backup_tasklist[task['task_id']] = task['task_id']
         hyper_backup_taskname[task['task_id']] = task['name']
@@ -115,21 +118,31 @@ def hyper_backup_get_info():
         hyper_backup_last_success = hyper_backup_taskresult['data']['last_bkp_success_time'] #last success
 
         if hyper_backup_last_success=='': # if the backup has never completed, set the time to now
-            hyper_backup_last_success = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+            hyper_backup_last_success = datetime.datetime.now().strftime(time_format_with_seconds)
 
-        hyper_backup_last_success_timestamp = time.mktime(time.strptime(hyper_backup_last_success, "%Y/%m/%d %H:%M"))
+        try:
+            hyper_backup_last_success_timestamp = time.mktime(time.strptime(hyper_backup_last_success, time_format_with_seconds))
+        except ValueError:
+            hyper_backup_last_success_timestamp = time.mktime(time.strptime(hyper_backup_last_success, time_format_without_seconds))
 
         hyper_backup_start_time = hyper_backup_taskresult['data']['last_bkp_time']
         hyper_backup_end_time = hyper_backup_taskresult['data']['last_bkp_end_time']
 
         if hyper_backup_start_time=='': # if the backup has never completed, set the time to now
-            hyper_backup_start_time = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+            hyper_backup_start_time = datetime.datetime.now().strftime(time_format_with_seconds)
 
         if hyper_backup_end_time=='': # if the backup has never completed, set the time to now
-            hyper_backup_end_time = datetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+            hyper_backup_end_time = datetime.datetime.now().strftime(time_format_with_seconds)
 
-        hyper_backup_start_timestamp = time.mktime(time.strptime(hyper_backup_start_time, "%Y/%m/%d %H:%M"))
-        hyper_backup_end_timestamp = time.mktime(time.strptime(hyper_backup_end_time, "%Y/%m/%d %H:%M"))
+        try:
+            hyper_backup_start_timestamp = time.mktime(time.strptime(hyper_backup_start_time, time_format_with_seconds))
+        except ValueError:
+            hyper_backup_start_timestamp = time.mktime(time.strptime(hyper_backup_start_time, time_format_without_seconds))
+
+        try:
+            hyper_backup_end_timestamp = time.mktime(time.strptime(hyper_backup_end_time, time_format_with_seconds))
+        except ValueError:
+            hyper_backup_end_timestamp = time.mktime(time.strptime(hyper_backup_end_time, time_format_without_seconds))
 
         hyper_backup_duration_seconds = hyper_backup_end_timestamp - hyper_backup_start_timestamp
 
@@ -222,7 +235,7 @@ if __name__ == '__main__':
         exit(1)
 
     print("Synology Backup Exporter")
-    print("2023 - raphii / Raphael Pertl")
+    print("2024 - raphii / Raphael Pertl")
 
 
     if config['ActiveBackup']:
@@ -246,7 +259,7 @@ if __name__ == '__main__':
 
     while True:
         process_request(random.random())
-        time.sleep(5)
+        time.sleep(60)
         if config['ActiveBackup']:
             active_backup_get_info()
         if config['HyperBackup']:
