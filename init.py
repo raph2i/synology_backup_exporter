@@ -76,8 +76,8 @@ def convert_to_bool(input):
 
 def convert_to_int(input):
     try:
-        int(input)
-        return input
+        output = int(input)
+        return output
     except:
         # in the situation where the env var doesn't exist, os.getenv() returns None.
         # int() will throw an error when it cannot cast the variable to an int, such as
