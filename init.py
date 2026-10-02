@@ -14,6 +14,14 @@ import os
 from synology_api import core_active_backup as active_backup
 from synology_api import core_backup as hyper_backup
 
+def remove_stale_series(gauges, previous_labels, current_labels):
+    for labels in previous_labels - current_labels:
+        for gauge in gauges:
+            try:
+                gauge.remove(*labels)
+            except KeyError:
+                pass
+
 def active_backup_register_metrics():
     global gauge_active_backup_lastbackup_timestamp
     gauge_active_backup_lastbackup_timestamp = Gauge('synology_active_backup_lastbackup_timestamp','Timestamp of last backup', ['vmname', 'hostname', 'vmuuid', 'vmos'])
@@ -23,6 +31,8 @@ def active_backup_register_metrics():
     gauge_active_backup_lastbackup_transfered_bytes = Gauge('synology_active_backup_lastbackup_transfered_bytes','Transfered data of last backup in Bytes', ['vmname', 'hostname', 'vmuuid', 'vmos'])
     global gauge_active_backup_lastbackup_result
     gauge_active_backup_lastbackup_result = Gauge('synology_active_backup_lastbackup_result','Result of last backup - 2 = Good, 4 = Bad', ['vmname', 'hostname', 'vmuuid', 'vmos'])
+    global active_backup_reported_labels
+    active_backup_reported_labels = set()
 
 def active_backup_login():
     global active_backup_session
@@ -33,6 +43,7 @@ def active_backup_get_info():
     abb_vms = active_backup_session.list_device_transfer_size()
 
     hypervisor_list = {}
+    current_labels = set()
 
     for hypervisor in abb_hypervisor['data']:
         hypervisor_list[hypervisor['inventory_id']] = hypervisor['host_name']
@@ -58,8 +69,13 @@ def active_backup_get_info():
                 gauge_active_backup_lastbackup_duration.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_duration_seconds)
                 gauge_active_backup_lastbackup_transfered_bytes.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_transfered_bytes)
                 gauge_active_backup_lastbackup_result.labels(vm_hostname, vm_hypervisor, vm_uuid, vm_os).set(vm_backup_status)
+                current_labels.add((vm_hostname, vm_hypervisor, vm_uuid, vm_os))
         except IndexError:
             print('ERROR - Failed to load Backups.')
+
+    global active_backup_reported_labels
+    remove_stale_series([gauge_active_backup_lastbackup_timestamp, gauge_active_backup_lastbackup_duration, gauge_active_backup_lastbackup_transfered_bytes, gauge_active_backup_lastbackup_result], active_backup_reported_labels, current_labels)
+    active_backup_reported_labels = current_labels
 
 def convert_to_bool(input):
     # distutils.util.strtobool is deprecated, and according to PEP 632
@@ -91,6 +107,8 @@ def hyper_backup_register_metrics():
     gauge_hyper_backup_lastbackup_timestamp = Gauge('synology_hyper_backup_lastbackup_timestamp','Timestamp of last backup', ['task_id', 'task_name', 'target_type'])
     global gauge_hyper_backup_lastbackup_duration
     gauge_hyper_backup_lastbackup_duration = Gauge('synology_hyper_backup_lastbackup_duration','Duration of last backup in Seconds', ['task_id', 'task_name', 'target_type'])
+    global hyper_backup_reported_labels
+    hyper_backup_reported_labels = set()
 
 def hyper_backup_login():
     global hyper_backup_session
@@ -102,6 +120,7 @@ def hyper_backup_get_info():
     hyper_backup_tasklist = {}
     hyper_backup_taskname = {}
     hyper_backup_tasktype = {}
+    current_labels = set()
 
     time_format_with_seconds = "%Y/%m/%d %H:%M:%S"
     time_format_without_seconds = "%Y/%m/%d %H:%M"
@@ -150,9 +169,14 @@ def hyper_backup_get_info():
             gauge_hyper_backup_lastbackup_successful_timestamp.labels(hyper_backup_tasklist[result],hyper_backup_taskname[result],hyper_backup_tasktype[result]).set(hyper_backup_last_success_timestamp)
             gauge_hyper_backup_lastbackup_timestamp.labels(hyper_backup_tasklist[result],hyper_backup_taskname[result],hyper_backup_tasktype[result]).set(hyper_backup_end_timestamp)
             gauge_hyper_backup_lastbackup_duration.labels(hyper_backup_tasklist[result],hyper_backup_taskname[result],hyper_backup_tasktype[result]).set(hyper_backup_duration_seconds)
+            current_labels.add((hyper_backup_tasklist[result],hyper_backup_taskname[result],hyper_backup_tasktype[result]))
 
         except IndexError:
             print('ERROR - Failed to load Backups.')
+
+    global hyper_backup_reported_labels
+    remove_stale_series([gauge_hyper_backup_lastbackup_successful_timestamp, gauge_hyper_backup_lastbackup_timestamp, gauge_hyper_backup_lastbackup_duration], hyper_backup_reported_labels, current_labels)
+    hyper_backup_reported_labels = current_labels
 
 def hyper_backup_vault_register_metrics():
     global gauge_hyper_backup_vault_last_backup_duration_seconds
@@ -161,6 +185,8 @@ def hyper_backup_vault_register_metrics():
     gauge_hyper_backup_vault_last_backup_start_timestamp = Gauge('synology_hyper_backup_vault_last_backup_start_timestamp','Timestamp of last backup start', ['target_name', 'target_id', 'target_status'])
     global gauge_hyper_backup_vault_target_used_size_bytes
     gauge_hyper_backup_vault_target_used_size_bytes = Gauge('synology_hyper_backup_vault_target_used_size_bytes','Size of last backup', ['target_name', 'target_id', 'target_status'])
+    global hyper_backup_vault_reported_labels
+    hyper_backup_vault_reported_labels = set()
 
 
 def hyper_backup_vault_login():
@@ -169,6 +195,7 @@ def hyper_backup_vault_login():
 
 def hyper_backup_vault_get_info():
     hyper_backup_vault_data = hyper_backup_vault_session.vault_target_list()
+    current_labels = set()
 
     for target in hyper_backup_vault_data['data']['target_list']:
         hyper_backup_vault_target_name = target['target_name']
@@ -182,6 +209,11 @@ def hyper_backup_vault_get_info():
         gauge_hyper_backup_vault_last_backup_duration_seconds.labels(hyper_backup_vault_target_name, hyper_backup_vault_target_id, hyper_backup_vault_target_status).set(hyper_backup_vault_target_last_backup_duration)
         gauge_hyper_backup_vault_last_backup_start_timestamp.labels(hyper_backup_vault_target_name, hyper_backup_vault_target_id, hyper_backup_vault_target_status).set(hyper_backup_vault_target_last_backup_start_time)
         gauge_hyper_backup_vault_target_used_size_bytes.labels(hyper_backup_vault_target_name, hyper_backup_vault_target_id, hyper_backup_vault_target_status).set(hyper_backup_vault_target_used_size_bytes)
+        current_labels.add((hyper_backup_vault_target_name, hyper_backup_vault_target_id, hyper_backup_vault_target_status))
+
+    global hyper_backup_vault_reported_labels
+    remove_stale_series([gauge_hyper_backup_vault_last_backup_duration_seconds, gauge_hyper_backup_vault_last_backup_start_timestamp, gauge_hyper_backup_vault_target_used_size_bytes], hyper_backup_vault_reported_labels, current_labels)
+    hyper_backup_vault_reported_labels = current_labels
 
 # Create a metric to track time spent and requests made.
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
